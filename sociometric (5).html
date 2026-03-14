@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מפת סוציומטריה כיתתית</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f4f0; color: #1a1a18; min-height: 100vh; direction: rtl; }
+
+  header { background: #fff; border-bottom: 1px solid #e0ddd5; padding: 14px 28px; display: flex; align-items: center; gap: 12px; }
+  header h1 { font-size: 18px; font-weight: 600; }
+  header span { font-size: 13px; color: #888; }
+
+  .container { max-width: 980px; margin: 0 auto; padding: 24px 16px; }
+
+  .tab-bar { display: flex; background: #fff; border-radius: 12px 12px 0 0; border: 1px solid #e0ddd5; border-bottom: none; overflow: hidden; }
+  .tab { flex: 1; padding: 13px 10px; font-size: 13px; cursor: pointer; border: none; background: none; color: #888; font-weight: 500; border-bottom: 3px solid transparent; transition: all .15s; font-family: inherit; white-space: nowrap; }
+  .tab:hover { background: #f5f4f0; color: #333; }
+  .tab.active { color: #1a1a18; border-bottom-color: #1D9E75; background: #fff; }
+
+  .panel { background: #fff; border: 1px solid #e0ddd5; border-top: none; border-radius: 0 0 12px 12px; padding: 24px; }
+
+  /* Mode selector */
+  .mode-selector { display: flex; gap: 12px; margin-bottom: 20px; }
+  .mode-card { flex: 1; border: 1.5px solid #e0ddd5; border-radius: 10px; padding: 14px 16px; cursor: pointer; transition: all .15s; background: #fafaf8; display: flex; flex-direction: column; gap: 6px; }
+  .mode-card:hover { border-color: #1D9E75; background: #f0faf6; }
+  .mode-card.active { border-color: #1D9E75; background: #f0faf6; box-shadow: 0 0 0 3px rgba(29,158,117,0.1); }
+  .mode-card .mode-title { font-size: 14px; font-weight: 600; color: #1a1a18; display: flex; align-items: center; gap: 8px; }
+  .mode-card .mode-desc { font-size: 12px; color: #777; line-height: 1.5; }
+  .mode-card .mode-example { font-size: 11px; font-family: 'Courier New', monospace; color: #999; margin-top: 4px; background: #f5f4f0; padding: 5px 8px; border-radius: 5px; direction: ltr; white-space: pre; overflow-x: auto; }
+
+  .input-section { display: none; }
+  .input-section.active { display: block; }
+  label.field-label { display: block; font-size: 13px; color: #555; margin-bottom: 8px; font-weight: 500; }
+  textarea { width: 100%; font-size: 12px; font-family: 'Courier New', monospace; border-radius: 8px; padding: 10px 12px; resize: vertical; background: #fafaf8; color: #1a1a18; border: 1px solid #d0cdc5; direction: ltr; outline: none; transition: border-color .15s; }
+  textarea:focus { border-color: #1D9E75; }
+  #textarea-list { min-height: 130px; }
+  #textarea-matrix { min-height: 150px; }
+  .hint { font-size: 12px; color: #999; margin-top: 8px; line-height: 1.7; }
+  .matrix-example { font-size: 11px; font-family: 'Courier New', monospace; background: #f5f4f0; border-radius: 8px; padding: 10px 14px; margin-top: 10px; overflow-x: auto; white-space: pre; direction: ltr; border: 1px solid #e0ddd5; color: #555; line-height: 1.8; }
+
+  .btn-row { margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap; }
+  button { padding: 9px 18px; font-size: 13px; border-radius: 8px; cursor: pointer; font-family: inherit; font-weight: 500; border: 1px solid #d0cdc5; background: #fff; color: #1a1a18; transition: all .15s; }
+  button:hover { background: #f5f4f0; }
+  button.primary { background: #1a1a18; color: #fff; border-color: transparent; }
+  button.primary:hover { background: #333; }
+  #msg { font-size: 13px; color: #D85A30; padding: 6px 0; min-height: 20px; }
+
+  .cols-selector { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .cols-selector label { font-size: 13px; color: #555; white-space: nowrap; }
+  .cols-group { display: flex; gap: 6px; }
+  .cols-btn { padding: 5px 13px; font-size: 12px; border-radius: 6px; cursor: pointer; border: 1px solid #d0cdc5; background: #fff; color: #555; font-family: inherit; transition: all .15s; }
+  .cols-btn:hover { background: #f0faf6; border-color: #1D9E75; }
+  .cols-btn.active { background: #1D9E75; color: #fff; border-color: #1D9E75; }
+
+  /* Map panel */
+  .legend { display: flex; gap: 14px; font-size: 12px; color: #666; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
+  .leg { display: flex; align-items: center; gap: 5px; }
+  .leg-line { width: 22px; height: 2px; border-radius: 1px; }
+  .leg-dot { width: 12px; height: 12px; border-radius: 50%; }
+  #canvas-wrap { width: 100%; border: 1px solid #e0ddd5; border-radius: 10px; overflow: hidden; background: #fefefe; }
+  canvas { display: block; width: 100%; }
+  #node-info { font-size: 13px; color: #666; margin-top: 10px; min-height: 20px; padding: 7px 12px; background: #f5f4f0; border-radius: 7px; line-height: 1.6; }
+  .map-actions { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; }
+
+  /* Summary table */
+  .summary-section { margin-top: 0; }
+  .summary-section h2 { font-size: 15px; font-weight: 600; color: #1a1a18; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 24px; }
+  .stat-card { background: #f5f4f0; border-radius: 10px; padding: 12px 14px; text-align: center; }
+  .stat-card .stat-val { font-size: 24px; font-weight: 700; color: #1a1a18; }
+  .stat-card .stat-lbl { font-size: 11px; color: #888; margin-top: 3px; }
+
+  .summary-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .summary-table th { background: #f5f4f0; padding: 9px 12px; text-align: right; font-weight: 600; font-size: 12px; color: #555; border-bottom: 1px solid #e0ddd5; white-space: nowrap; }
+  .summary-table td { padding: 9px 12px; border-bottom: 0.5px solid #eeecea; vertical-align: middle; }
+  .summary-table tr:last-child td { border-bottom: none; }
+  .summary-table tr:hover td { background: #fafaf8; }
+
+  /* Status badges */
+  .badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .badge-star      { background: #FFF3CD; color: #856404; border: 1px solid #FFE69C; }
+  .badge-rejected  { background: #FDECEA; color: #8B1A1A; border: 1px solid #F5C6CB; }
+  .badge-isolated  { background: #E9ECEF; color: #495057; border: 1px solid #CED4DA; }
+  .badge-controversial { background: #FFF0F6; color: #862459; border: 1px solid #FFADD2; }
+  .badge-average   { background: #E8F4E8; color: #2E7D32; border: 1px solid #A5D6A7; }
+
+  .num-pos { color: #1D9E75; font-weight: 600; }
+  .num-neg { color: #D85A30; font-weight: 600; }
+  .num-zero { color: #aaa; }
+
+  /* Pairs & groups */
+  .pairs-section, .groups-section, .onesided-section { margin-bottom: 28px; }
+  .pairs-section h3, .groups-section h3, .onesided-section h3 { font-size: 13px; font-weight: 600; color: #555; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .pair-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pair-chip { background: #EDE9FF; color: #3C3489; border: 1px solid #C5BFEE; border-radius: 20px; padding: 4px 12px; font-size: 12px; font-weight: 500; }
+  .onesided-chip { background: #FFF0E6; color: #8B4513; border: 1px solid #FFCC99; border-radius: 20px; padding: 4px 12px; font-size: 12px; font-weight: 500; }
+  .group-chip { display: inline-flex; align-items: center; gap: 4px; background: #E6F7F1; color: #0F6E56; border: 1px solid #9FE1CB; border-radius: 20px; padding: 5px 14px; font-size: 12px; font-weight: 500; }
+  .group-chip .g-num { background: #1D9E75; color: #fff; border-radius: 50%; width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; }
+
+  .divider { height: 1px; background: #eeecea; margin: 24px 0; }
+
+  /* Recommendations tab */
+  .rec-section { margin-bottom: 28px; }
+  .rec-section h3 { font-size: 14px; font-weight: 600; color: #1a1a18; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; padding-bottom: 8px; border-bottom: 1px solid #eeecea; }
+  .issue-card { border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; border-right: 4px solid; }
+  .issue-card.severity-high   { background: #FFF5F5; border-color: #E53E3E; }
+  .issue-card.severity-medium { background: #FFFAF0; border-color: #DD6B20; }
+  .issue-card.severity-low    { background: #F0FFF4; border-color: #38A169; }
+  .issue-card .issue-title { font-size: 13px; font-weight: 600; margin-bottom: 5px; display: flex; align-items: center; gap: 7px; }
+  .issue-card.severity-high   .issue-title { color: #C53030; }
+  .issue-card.severity-medium .issue-title { color: #C05621; }
+  .issue-card.severity-low    .issue-title { color: #276749; }
+  .issue-card .issue-body { font-size: 13px; color: #444; line-height: 1.7; }
+  .issue-card .issue-names { font-size: 12px; margin-top: 5px; color: #666; }
+  .issue-card .issue-names strong { color: #333; }
+
+  .rec-card { background: #F8FAFF; border: 1px solid #C3D4F5; border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
+  .rec-card .rec-title { font-size: 13px; font-weight: 600; color: #1a3a6b; margin-bottom: 6px; display: flex; align-items: center; gap: 7px; }
+  .rec-card .rec-body { font-size: 13px; color: #2d3748; line-height: 1.75; }
+  .rec-card .rec-target { font-size: 12px; color: #4a6fa5; margin-top: 5px; font-style: italic; }
+
+  .no-issues { font-size: 13px; color: #888; padding: 12px; background: #f9f9f9; border-radius: 8px; }
+
+  footer { text-align: center; font-size: 11px; color: #bbb; padding: 20px; margin-top: 8px; }
+
+  /* Gender toggle */
+  .gender-toggle { display:flex; gap:10px; margin-bottom:14px; align-items:center; flex-wrap:wrap; }
+  .gender-toggle label { font-size:13px; color:#555; font-weight:500; }
+  .gender-group { display:flex; gap:0; border:1px solid #d0cdc5; border-radius:8px; overflow:hidden; }
+  .gender-btn { padding:6px 14px; font-size:12px; cursor:pointer; border:none; background:#fff; color:#555; font-family:inherit; font-weight:500; transition:all .15s; border-left:1px solid #d0cdc5; }
+  .gender-btn:first-child { border-left:none; }
+  .gender-btn:hover { background:#f5f4f0; }
+  .gender-btn.active { background:#1a1a18; color:#fff; }
+  .gender-hint { font-size:12px; color:#aaa; }
+  .gender-section { display:none; }
+  .gender-section.visible { display:block; }
+</style>
+</head>
+<body>
+
+<header>
+  <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+    <circle cx="14" cy="14" r="13" stroke="#1D9E75" stroke-width="1.5"/>
+    <circle cx="14" cy="9"  r="3"   fill="#1D9E75"/>
+    <circle cx="7"  cy="20" r="2.5" fill="#1D9E75" opacity=".6"/>
+    <circle cx="21" cy="20" r="2.5" fill="#1D9E75" opacity=".6"/>
+    <line x1="14" y1="12" x2="7"  y2="18" stroke="#1D9E75" stroke-width="1.2" opacity=".7"/>
+    <line x1="14" y1="12" x2="21" y2="18" stroke="#1D9E75" stroke-width="1.2" opacity=".7"/>
+    <line x1="9"  y1="19" x2="19" y2="19" stroke="#D85A30" stroke-width="1" stroke-dasharray="3 2" opacity=".6"/>
+  </svg>
+  <div>
+    <h1>מפת סוציומטריה כיתתית</h1>
+    <span>ויזואליזציה וסיכום קשרי חברות</span>
+  </div>
+</header>
+
+<div class="container">
+  <div class="tab-bar">
+    <button class="tab active" onclick="showTab('input')">📋 הזנת נתונים</button>
+    <button class="tab" onclick="showTab('map')">🗺️ מפת קשרים</button>
+    <button class="tab" onclick="showTab('summary')">📊 סיכום וניתוח</button>
+    <button class="tab" onclick="showTab('recs')">💡 בעיות והמלצות</button>
+  </div>
+
+  <!-- INPUT -->
+  <div class="panel" id="tab-input">
+    <label class="field-label" style="margin-bottom:10px">בחר אופן הזנת הנתונים:</label>
+    <div class="mode-selector">
+      <div class="mode-card active" id="card-list" onclick="setMode('list')">
+        <div class="mode-title"><span>📝</span> רשימת בחירות</div>
+        <div class="mode-desc">לכל ילד: שמות החברים שבחר ושמות שלא בחר</div>
+        <div class="mode-example">שם      חבר1   חבר2   לא-חבר1  לא-חבר2
+שרה     דנה    אורי   יוסי     נועה
+דנה     שרה    אריאל  יוסי     ...</div>
+      </div>
+      <div class="mode-card" id="card-matrix" onclick="setMode('matrix')">
+        <div class="mode-title"><span>🔢</span> מטריצה (1 / -1)</div>
+        <div class="mode-desc">טבלה עם 1 לחבר, -1 ללא-חבר, 0 לניטרלי</div>
+        <div class="mode-example">       דנה  אורי  יוסי
+שרה     1    1    -1
+דנה     0    0    -1
+...</div>
+      </div>
+    </div>
+
+    <div class="input-section active" id="section-list">
+      <div class="cols-selector">
+        <label>מספר חברים / לא-חברים שנבחרו:</label>
+        <div class="cols-group" id="cols-group">
+          <button class="cols-btn" onclick="setCols(1)">1</button>
+          <button class="cols-btn" onclick="setCols(2)">2</button>
+          <button class="cols-btn active" onclick="setCols(3)">3</button>
+          <button class="cols-btn" onclick="setCols(4)">4</button>
+          <button class="cols-btn" onclick="setCols(5)">5</button>
+        </div>
+      </div>
+      <label class="field-label" id="list-label">שם | חבר1 | חבר2 | חבר3 | לא-חבר1 | לא-חבר2 | לא-חבר3</label>
+      <textarea id="textarea-list" dir="rtl" placeholder="הדבק כאן נתונים מאקסל..."></textarea>
+      <div class="hint">העתק והדבק ישירות מאקסל. העמודות מופרדות ב-Tab אוטומטית.</div>
+
+      <!-- Gender separation option -->
+      <div style="margin-top:14px">
+        <div class="gender-toggle">
+          <label>הפרדה בין בנים לבנות:</label>
+          <div class="gender-group">
+            <button class="gender-btn active" id="gnd-off-list" onclick="setGender('list','none')">ללא הפרדה</button>
+            <button class="gender-btn" id="gnd-col-list" onclick="setGender('list','col')">עמודת ז/נ</button>
+            <button class="gender-btn" id="gnd-two-list" onclick="setGender('list','two')">שתי טבלאות</button>
+          </div>
+        </div>
+        <div class="gender-section" id="gender-col-list">
+          <div class="hint" style="margin-bottom:8px">הוסף עמודה בשם <strong>"מין"</strong> משמאל לעמודת שמות התלמידים — כתוב <strong>ז</strong> לזכר ו-<strong>נ</strong> לנקבה</div>
+          <div class="matrix-example" style="margin-top:0">מין	שם	חבר1	חבר2	חבר3	לא-חבר1	לא-חבר2	לא-חבר3
+ז	דני כהן	שירה לוי	אורי כהן	אריאל גולן	נועה שטיין	יוסי מזרחי	לי ג'ין
+נ	שירה לוי	דנה גל	נועה שטיין	לי ג'ין	דני כהן	אורי כהן	אריאל גולן</div>
+        </div>
+        <div class="gender-section" id="gender-two-list">
+          <div class="hint" style="margin-bottom:8px">הכנס קודם את כל הבנים, לאחר מכן שורה ריקה, ואז את כל הבנות</div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="primary" onclick="buildAll()">בנה מפה וסיכום ←</button>
+        <button onclick="loadDemoList()">טען דוגמה</button>
+      </div>
+    </div>
+
+    <div class="input-section" id="section-matrix">
+      <label class="field-label">שורה ראשונה = שמות עמודות (נבחרים) | עמודה ראשונה = שם הבוחר</label>
+      <textarea id="textarea-matrix" placeholder="הדבק כאן את המטריצה מאקסל..."></textarea>
+      <div class="hint">1 = בחר כחבר &nbsp;|&nbsp; -1 = בחר כלא-חבר &nbsp;|&nbsp; 0 או ריק = ניטרלי</div>
+      <div class="matrix-example">           דנה   ישראל  אורי   נועה   יוסי
+שרה         1      0     1      0     -1
+דנה         0      1     0     -1      0
+ישראל       1      0     0      0     -1</div>
+      <!-- Gender separation -->
+      <div style="margin-top:14px">
+        <div class="gender-toggle">
+          <label>הפרדה בין בנים לבנות:</label>
+          <div class="gender-group">
+            <button class="gender-btn active" id="gnd-off-matrix" onclick="setGender('matrix','none')">ללא הפרדה</button>
+            <button class="gender-btn" id="gnd-col-matrix" onclick="setGender('matrix','col')">עמודת ז/נ</button>
+          </div>
+        </div>
+        <div class="gender-section" id="gender-col-matrix">
+          <div class="hint" style="margin-bottom:4px">הוסף עמודה בשם <strong>"מין"</strong> משמאל לעמודת שמות התלמידים — כתוב <strong>ז</strong> לזכר ו-<strong>נ</strong> לנקבה</div>
+          <div class="matrix-example" style="margin-top:0">שם התלמיד	מין	דני כהן	שירה לוי	אורי בן-דוד	נועה שטיין
+דני כהן	ז		1	0	-1
+שירה לוי	נ	0		1	0
+אורי בן-דוד	ז	-1	0		1
+נועה שטיין	נ	0	1	0	</div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="primary" onclick="buildAll()">בנה מפה וסיכום ←</button>
+        <button onclick="loadDemoMatrix()">טען דוגמה</button>
+      </div>
+    </div>
+    <div id="msg"></div>
+  </div>
+
+  <!-- MAP -->
+  <div class="panel" id="tab-map" style="display:none">
+    <div class="legend">
+      <div class="leg"><div class="leg-line" style="background:#1D9E75"></div> בחר כחבר</div>
+      <div class="leg"><div class="leg-line" style="background:#D85A30"></div> בחר כלא-חבר</div>
+      <div class="leg"><div class="leg-line" style="background:#7F77DD;height:3px"></div> חברות הדדית</div>
+      <div class="leg"><div class="leg-dot" style="background:#1D9E75;opacity:.5"></div> פופולרי = קרוב למרכז</div>
+      <div class="leg"><div style="width:12px;height:12px;border-radius:50%;background:#4a90d9;display:inline-block"></div> בן</div>
+      <div class="leg"><div style="width:12px;height:12px;border-radius:50%;background:#e06aa3;display:inline-block"></div> בת</div>
+      <span style="margin-right:auto;font-size:11px;color:#aaa">גרור ילדים לסידור ידני</span>
+    </div>
+    <div id="canvas-wrap"><canvas id="canvas" height="520"></canvas></div>
+    <div id="node-info">לחץ על שם ילד לפרטים</div>
+    <div class="map-actions">
+      <button onclick="reshuffle()">🔀 סדר מחדש</button>
+      <button onclick="showTab('summary')">📊 לסיכום →</button>
+      <button onclick="showTab('input')">← ערוך נתונים</button>
+      <button onclick="exportPNG()">💾 שמור תמונה</button>
+    </div>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="panel" id="tab-summary" style="display:none">
+    <div class="summary-section">
+
+      <!-- Quick stats -->
+      <div id="stats-grid" class="stats-grid"></div>
+
+      <div class="divider"></div>
+
+      <!-- Per-student table -->
+      <h2>📋 טבלת תלמידים</h2>
+      <div style="overflow-x:auto">
+        <table class="summary-table" id="student-table">
+          <thead>
+            <tr>
+              <th>שם</th>
+              <th title="מגדר">מגדר</th>
+              <th title="כמה פעמים נבחר כחבר">✅ נבחר כחבר</th>
+              <th title="כמה פעמים נבחר כלא-חבר">❌ נבחר כלא-חבר</th>
+              <th title="כמה חברים בחר">👆 בחר חברים</th>
+              <th title="כמה לא-חברים בחר">👇 בחר לא-חברים</th>
+              <th>מעמד חברתי</th>
+            </tr>
+          </thead>
+          <tbody id="student-tbody"></tbody>
+        </table>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Pairs -->
+      <div class="pairs-section">
+        <h3>💜 זוגות — בחירה הדדית</h3>
+        <div class="pair-chips" id="pairs-list"></div>
+      </div>
+
+      <!-- One-sided -->
+      <div class="onesided-section">
+        <h3>↔️ בחירות חד-צדדיות</h3>
+        <div class="pair-chips" id="onesided-list"></div>
+      </div>
+
+      <!-- Groups -->
+      <div class="groups-section">
+        <h3>👥 קבוצות — רשת בחירות הדדיות</h3>
+        <div class="pair-chips" id="groups-list"></div>
+      </div>
+
+      <div class="divider"></div>
+      <!-- Legend explanation -->
+      <div style="font-size:12px;color:#888;line-height:2">
+        <strong>מקרא מעמד חברתי:</strong> &nbsp;
+        <span class="badge badge-star">⭐ כוכב</span> בחירות רבות כחבר &nbsp;
+        <span class="badge badge-rejected">🚫 דחוי</span> ללא בחירות חיוביות + דחיות &nbsp;
+        <span class="badge badge-isolated">👤 עזוב/בודד</span> ללא בחירות בכלל &nbsp;
+        <span class="badge badge-controversial">🔥 קונטרוברסיאלי</span> בחירות + דחיות דומות &nbsp;
+        <span class="badge badge-average">😊 ממוצע</span> מעמד רגיל
+      </div>
+    </div>
+    <div class="map-actions" style="margin-top:16px">
+      <button onclick="showTab('map')">🗺️ למפה</button>
+      <button onclick="showTab('input')">← ערוך נתונים</button>
+      <button onclick="exportSummary()">💾 שמור סיכום</button>
+    </div>
+  </div>
+
+  <!-- RECOMMENDATIONS -->
+  <div class="panel" id="tab-recs" style="display:none">
+    <div class="rec-section">
+      <h3>⚠️ איפיון בעיות בכיתה</h3>
+      <div id="issues-list"></div>
+    </div>
+    <div class="divider"></div>
+    <div class="rec-section">
+      <h3>💡 המלצות יישומיות למורה</h3>
+      <div id="recs-list"></div>
+    </div>
+    <div class="divider"></div>
+    <div class="rec-section">
+      <h3>📌 תלמידים הדורשים תשומת לב מיוחדת</h3>
+      <div id="attention-list"></div>
+    </div>
+    <div class="map-actions" style="margin-top:16px">
+      <button onclick="showTab('summary')">📊 לסיכום</button>
+      <button onclick="showTab('map')">🗺️ למפה</button>
+    </div>
+  </div>
+
+  <footer>כלי זה פועל לחלוטין במחשב שלך — אין שליחת נתונים לאינטרנט</footer>
+</div>
+
+<script>
+let nodes=[], edges=[], allStudents=[], dragging=null, dragOffX=0, dragOffY=0, selectedNode=null, moved=false;
+let W=680, H=520;
+let currentMode='list', numCols=3;
+let genderMode={list:'none', matrix:'none'};
+let genderMap={}; // name -> 'b' | 'g' | ''
+const FRIEND_COLOR='#1D9E75', NONFRIEND_COLOR='#D85A30', MUTUAL_COLOR='#7F77DD';
+const BOY_COLOR='#4a90d9', GIRL_COLOR='#e06aa3';
+
+function setGender(mode, val){
+  genderMode[mode]=val;
+  ['off','col','two'].forEach(v=>{
+    const btn=document.getElementById('gnd-'+v+'-'+mode);
+    if(btn) btn.classList.toggle('active', v===val);
+  });
+  ['col','two'].forEach(v=>{
+    const sec=document.getElementById('gender-'+v+'-'+mode);
+    if(sec) sec.classList.toggle('visible', v===val);
+  });
+}
+
+function firstName(name){
+  // Strip gender prefix
+  name = name.replace(/^[זנ]-/,'').trim();
+  return name.split(/\s+/)[0];
+}
+
+// Build a display label: first name only, unless another student shares it → add last name
+function displayLabel(name, allNodeIds){
+  const first = firstName(name);
+  // Fuzzy match: compare first 3 chars to catch near-duplicates like אבגיל/אביגיל
+  const key = first.substring(0, 3);
+  const duplicates = allNodeIds.filter(id => {
+    if(id === name) return false;
+    const f = firstName(id);
+    return f === first || f.substring(0,3) === key;
+  });
+  if(duplicates.length > 0){
+    const parts = name.replace(/^[זנ]-/,'').trim().split(/\s+/);
+    return parts.length >= 2 ? first + ' ' + parts[parts.length-1] : first;
+  }
+  return first;
+}
+
+function extractGenderPrefix(name){
+  if(/^ז[- ]/.test(name)) return 'b';
+  if(/^נ[- ]/.test(name)) return 'g';
+  return '';
+}
+
+function stripGenderPrefix(name){
+  return name.replace(/^[זנ][- ]/,'').trim();
+}
+
+/* ─── UI ─────────────────────────────────────────────────── */
+function showTab(t){
+  ['input','map','summary','recs'].forEach(id=>{
+    document.getElementById('tab-'+id).style.display=t===id?'':'none';
+  });
+  document.querySelectorAll('.tab').forEach((b,i)=>{
+    b.classList.toggle('active',['input','map','summary','recs'][i]===t);
+  });
+  if(t==='map') draw();
+}
+
+function setMode(m){
+  currentMode=m;
+  document.getElementById('card-list').classList.toggle('active',m==='list');
+  document.getElementById('card-matrix').classList.toggle('active',m==='matrix');
+  document.getElementById('section-list').classList.toggle('active',m==='list');
+  document.getElementById('section-matrix').classList.toggle('active',m==='matrix');
+  document.getElementById('msg').textContent='';
+}
+
+function setCols(n){
+  numCols=n;
+  document.querySelectorAll('.cols-btn').forEach((b,i)=>b.classList.toggle('active',i+1===n));
+  const f=[...Array(n)].map((_,i)=>`חבר${i+1}`).join(' | ');
+  const nf=[...Array(n)].map((_,i)=>`לא-חבר${i+1}`).join(' | ');
+  document.getElementById('list-label').textContent=`שם | ${f} | ${nf}`;
+}
+
+/* ─── Demo ────────────────────────────────────────────────── */
+function loadDemoList(){
+  // Demo with gender column (ב=בן, ג=בת)
+  setGender('list','col');
+  document.getElementById('textarea-list').value=
+`ז\tאורי כהן\tדני לוי\tאריאל גולן\tשרה כהן\tנועה שטיין\tלי ג'ין
+ז\tדני לוי\tאורי כהן\tיוסי מזרחי\tנועה שטיין\tשרה כהן\tלי ג'ין
+ז\tאריאל גולן\tיוסי מזרחי\tדני לוי\tשרה כהן\tנועה שטיין\tאורי כהן
+ז\tיוסי מזרחי\tאריאל גולן\tדני לוי\tלי ג'ין\tשרה כהן\tנועה שטיין
+נ\tשרה כהן\tדנה לוי\tנועה שטיין\tאורי כהן\tיוסי מזרחי\tאריאל גולן
+נ\tדנה לוי\tשרה כהן\tלי ג'ין\tיוסי מזרחי\tנועה שטיין\tאורי כהן
+נ\tנועה שטיין\tשרה כהן\tדנה לוי\tאורי כהן\tאריאל גולן\tיוסי מזרחי
+נ\tלי ג'ין\tדנה לוי\tנועה שטיין\tיוסי מזרחי\tאורי כהן\tשרה כהן`;
+}
+function loadDemoMatrix(){
+  document.getElementById('textarea-matrix').value=
+`\tדנה\tישראל\tאורי\tנועה\tיוסי\tאריאל\tלי
+שרה\t1\t0\t1\t0\t-1\t0\t0
+דנה\t0\t1\t0\t-1\t0\t1\t0
+ישראל\t1\t0\t0\t0\t-1\t0\t1
+אורי\t1\t1\t0\t0\t0\t0\t-1
+נועה\t0\t1\t1\t0\t-1\t0\t0
+יוסי\t0\t0\t0\t0\t0\t1\t1
+אריאל\t0\t0\t-1\t0\t1\t0\t1`;
+}
+
+/* ─── Parsers ─────────────────────────────────────────────── */
+function parseList(raw){
+  const lines=raw.trim().split('\n').filter(l=>l.trim());
+  const allNames=new Set(); const rawEdges=[]; const localGender={};
+  const gm = genderMode['list'];
+  let offset=0; // extra columns before name
+  if(gm==='col') offset=1;
+
+  // Two-table mode: split on blank line
+  let boyLines=[], girlLines=[];
+  if(gm==='two'){
+    const parts=raw.trim().split(/\n\s*\n/);
+    boyLines=(parts[0]||'').split('\n').filter(l=>l.trim()).map(l=>l.split('\t').map(s=>s.trim()));
+    girlLines=(parts[1]||'').split('\n').filter(l=>l.trim()).map(l=>l.split('\t').map(s=>s.trim()));
+    boyLines.forEach(cols=>{ const n=cols[0]; if(n){localGender[n]='b';}});
+    girlLines.forEach(cols=>{ const n=cols[0]; if(n){localGender[n]='g';}});
+  }
+
+  const processRows = (rows, genderDefault) => {
+    for(const cols of rows){
+      let gnd=genderDefault, nameCol=0;
+      if(gm==='col'){ gnd=cols[0]==='ז'?'b':cols[0]==='נ'?'g':''; nameCol=1; }
+      let rawName=cols[nameCol]; if(!rawName) continue;
+      // Support "ב-שם" or "ג-שם" inline prefix
+      if(!gnd){ gnd=extractGenderPrefix(rawName); }
+      const name=stripGenderPrefix(rawName);
+      if(!name) continue;
+      localGender[name]=gnd||'';
+      allNames.add(name);
+      cols.slice(nameCol+1,nameCol+1+numCols).filter(Boolean).forEach(f=>{
+        const fn=stripGenderPrefix(f); if(!fn) return;
+        if(!localGender[fn]) localGender[fn]=extractGenderPrefix(f)||'';
+        allNames.add(fn);rawEdges.push({from:name,to:fn,type:'friend'});
+      });
+      cols.slice(nameCol+1+numCols,nameCol+1+numCols*2).filter(Boolean).forEach(n=>{
+        const nn=stripGenderPrefix(n); if(!nn) return;
+        if(!localGender[nn]) localGender[nn]=extractGenderPrefix(n)||'';
+        allNames.add(nn);rawEdges.push({from:name,to:nn,type:'nonfriend'});
+      });
+    }
+  };
+
+  if(gm==='two'){
+    processRows(boyLines,'b'); processRows(girlLines,'g');
+  } else {
+    processRows(lines.map(l=>l.split('\t').map(s=>s.trim())),'');
+  }
+  Object.assign(genderMap, localGender);
+  return {allNames,rawEdges};
+}
+function parseMatrix(raw){
+  const lines=raw.trim().split('\n').map(l=>l.split('\t'));
+  const rawEdges=[]; const allNames=new Set();
+
+  // ── Auto-detect format ──────────────────────────────────────
+  // Header row: first cell may be empty/label, then optionally a gender cell, then names
+  // Data rows:  col0=name, optionally col1=ז/נ, then vote values
+  // We detect if col1 of data rows is ז or נ → gender column present at position 1
+
+  const headerRow = lines[0];
+  // Find where names start in header: skip first cell (corner label)
+  // Detect if second cell in first data row is gender marker
+  const firstDataRow = lines.find((r,i)=>i>0 && (r[0]||'').trim());
+  const hasGenderCol = firstDataRow && (firstDataRow[1]==='ז'||firstDataRow[1]==='נ');
+  const dataOffset = hasGenderCol ? 2 : 1; // how many cols to skip before vote values
+
+  // Column names: from header, starting after corner cell (and skip gender header cell if present)
+  const rawColNames = headerRow.slice(dataOffset).map(s=>s.trim());
+  // Filter out empty col names but keep track of indices
+  const colEntries = rawColNames.map((c,i)=>({name:stripGenderPrefix(c.trim()), orig:c.trim(), idx:i})).filter(e=>e.name);
+  colEntries.forEach(e=>{ const g=extractGenderPrefix(e.orig); if(g) genderMap[e.name]=g; allNames.add(e.name); });
+
+  for(let i=1;i<lines.length;i++){
+    const row=lines[i];
+    const rawRowName=(row[0]||'').trim(); if(!rawRowName) continue;
+    const rowName=stripGenderPrefix(rawRowName);
+    if(!rowName) continue;
+    // Extract gender from col1 if present, or from name prefix
+    const g = hasGenderCol ? (row[1]==='ז'?'b':row[1]==='נ'?'g':'') : extractGenderPrefix(rawRowName);
+    if(g) genderMap[rowName]=g;
+    allNames.add(rowName);
+
+    for(const e of colEntries){
+      const target=e.name;
+      if(!target||rowName===target) continue;
+      const val=parseInt((row[dataOffset+e.idx]||'').trim(),10);
+      if(val===1)  rawEdges.push({from:rowName,to:target,type:'friend'});
+      if(val===-1) rawEdges.push({from:rowName,to:target,type:'nonfriend'});
+    }
+  }
+  return {allNames,rawEdges};
+}
+
+/* ─── Build everything ───────────────────────────────────── */
+function buildAll(){
+  genderMap={};
+  const raw=currentMode==='list'
+    ? document.getElementById('textarea-list').value.trim()
+    : document.getElementById('textarea-matrix').value.trim();
+  if(!raw){document.getElementById('msg').textContent='אנא הכנס נתונים.';return;}
+  let parsed;
+  try{ parsed=currentMode==='list'?parseList(raw):parseMatrix(raw); }
+  catch(e){document.getElementById('msg').textContent='שגיאה. בדוק פורמט.';return;}
+  const {allNames,rawEdges}=parsed;
+  if(allNames.size===0){document.getElementById('msg').textContent='לא זוהו שמות. בדוק שהנתונים מופרדים ב-Tab.';return;}
+  document.getElementById('msg').textContent='';
+
+  // Compute stats per student
+  const friendVotes={}, rejectVotes={}, friendGiven={}, rejectGiven={};
+  allNames.forEach(n=>{friendVotes[n]=0;rejectVotes[n]=0;friendGiven[n]=0;rejectGiven[n]=0;});
+  rawEdges.forEach(e=>{
+    if(e.type==='friend'){friendVotes[e.to]=(friendVotes[e.to]||0)+1; friendGiven[e.from]=(friendGiven[e.from]||0)+1;}
+    else{rejectVotes[e.to]=(rejectVotes[e.to]||0)+1; rejectGiven[e.from]=(rejectGiven[e.from]||0)+1;}
+  });
+
+  const friendSet=new Set(rawEdges.filter(e=>e.type==='friend').map(e=>e.from+'|'+e.to));
+  edges=rawEdges.map(e=>({...e,mutual:e.type==='friend'&&friendSet.has(e.to+'|'+e.from)}));
+
+  allStudents=[...allNames].map(name=>({
+    name, friendVotes:friendVotes[name]||0, rejectVotes:rejectVotes[name]||0,
+    friendGiven:friendGiven[name]||0, rejectGiven:rejectGiven[name]||0
+  }));
+
+  // Build map nodes
+  const nameList=[...allNames];
+  const maxVotes=Math.max(...allStudents.map(s=>s.friendVotes),1);
+  const wrap=document.getElementById('canvas-wrap');
+  W=wrap.clientWidth||680;
+  const cx=W/2,cy=H/2,maxR=Math.min(W,H)*0.40;
+  // Separate by gender for placement
+  const boys=nameList.filter(n=>genderMap[n]==='b');
+  const girls=nameList.filter(n=>genderMap[n]==='g');
+  const noGender=nameList.filter(n=>!genderMap[n]);
+  const hasGender=boys.length>0||girls.length>0;
+
+  nameList.sort((a,b)=>friendVotes[b]-friendVotes[a]);
+
+  function placeGroup(group, startAngle, sweepAngle){
+    return group.map((name,i)=>{
+      const votes=friendVotes[name]||0;
+      const norm=maxVotes>0?1-(votes/maxVotes):0.5;
+      const baseR=28+norm*(maxR-28);
+      const angle = group.length===1
+        ? startAngle + sweepAngle/2
+        : startAngle + (sweepAngle * i/(group.length-1));
+      return {id:name,x:cx+baseR*Math.cos(angle),y:cy+baseR*Math.sin(angle),votes,baseR};
+    });
+  }
+
+  if(hasGender && noGender.length===0){
+    // Boys: left half (π/2 to 3π/2), Girls: right half (-π/2 to π/2)
+    const bSorted=[...boys].sort((a,b)=>friendVotes[b]-friendVotes[a]);
+    const gSorted=[...girls].sort((a,b)=>friendVotes[b]-friendVotes[a]);
+    const bNodes=placeGroup(bSorted, Math.PI*0.1, Math.PI*0.8);
+    const gNodes=placeGroup(gSorted, -Math.PI*0.9, Math.PI*0.8);
+    nodes=[...bNodes,...gNodes];
+  } else if(hasGender){
+    const bSorted=[...boys].sort((a,b)=>friendVotes[b]-friendVotes[a]);
+    const gSorted=[...girls].sort((a,b)=>friendVotes[b]-friendVotes[a]);
+    const nSorted=[...noGender].sort((a,b)=>friendVotes[b]-friendVotes[a]);
+    const bNodes=placeGroup(bSorted, Math.PI*0.1, Math.PI*0.8);
+    const gNodes=placeGroup(gSorted, -Math.PI*0.9, Math.PI*0.8);
+    const nNodes=placeGroup(nSorted, Math.PI*0.95, Math.PI*0.1);
+    nodes=[...bNodes,...gNodes,...nNodes];
+  } else {
+    nodes=nameList.sort((a,b)=>friendVotes[b]-friendVotes[a]).map((name,i)=>{
+      const votes=friendVotes[name]||0;
+      const norm=maxVotes>0?1-(votes/maxVotes):0.5;
+      const baseR=28+norm*(maxR-28);
+      const angle=(2*Math.PI*i/nameList.length)-Math.PI/2;
+      return {id:name,x:cx+baseR*Math.cos(angle),y:cy+baseR*Math.sin(angle),votes,baseR};
+    });
+  }
+
+  selectedNode=null;
+  buildSummary(allStudents, friendSet, allNames);
+  buildRecommendations(allStudents, allNames);
+  showTab('map');
+}
+
+/* ─── Status classifier ───────────────────────────────────── */
+function getStatus(s, totalStudents){
+  const fv=s.friendVotes, rv=s.rejectVotes;
+  const avgFriend = allStudents.reduce((a,x)=>a+x.friendVotes,0)/allStudents.length;
+  const starThreshold = Math.max(2, Math.round(avgFriend*1.8));
+  // קונטרוברסיאלי: בחירות ודחיות שניהם גבוהים ויחסית דומים — נבדק לפני כוכב
+  const bothHigh = fv>=2 && rv>=2;
+  const similar = rv>0 && fv>0 && Math.abs(fv-rv)<=Math.max(1, Math.round(Math.max(fv,rv)*0.4));
+  if(bothHigh && similar) return {label:'🔥 קונטרוברסיאלי', cls:'badge-controversial'};
+  if(fv>=starThreshold)   return {label:'⭐ כוכב', cls:'badge-star'};
+  if(fv===0 && rv===0)    return {label:'👤 עזוב/בודד', cls:'badge-isolated'};
+  if(fv===0 && rv>0)      return {label:'🚫 דחוי', cls:'badge-rejected'};
+  return {label:'😊 ממוצע', cls:'badge-average'};
+}
+
+/* ─── Build summary ───────────────────────────────────────── */
+function buildSummary(students, friendSet, allNames){
+  const n=students.length;
+
+  // Quick stats
+  const stars=students.filter(s=>getStatus(s).cls==='badge-star').length;
+  const isolated=students.filter(s=>getStatus(s).cls==='badge-isolated').length;
+  const rejected=students.filter(s=>getStatus(s).cls==='badge-rejected').length;
+  const controversial=students.filter(s=>getStatus(s).cls==='badge-controversial').length;
+
+  // Mutual pairs
+  const mutualPairs=[];
+  const seen=new Set();
+  for(const e of edges.filter(e=>e.mutual)){
+    const key=[e.from,e.to].sort().join('|');
+    if(!seen.has(key)){seen.add(key);mutualPairs.push([e.from,e.to]);}
+  }
+
+  // One-sided choices (A chose B as friend, B did NOT choose A as friend)
+  const onesided=[];
+  const seenOS=new Set();
+  for(const e of edges.filter(e=>e.type==='friend'&&!e.mutual)){
+    const key=e.from+'→'+e.to;
+    if(!seenOS.has(key)){seenOS.add(key);onesided.push([e.from,e.to]);}
+  }
+
+  // Groups: connected components via mutual friendships
+  const adj={};
+  allNames.forEach(n=>{adj[n]=new Set();});
+  mutualPairs.forEach(([a,b])=>{adj[a].add(b);adj[b].add(a);});
+  const visited=new Set(); const groups=[];
+  allNames.forEach(start=>{
+    if(visited.has(start)||adj[start].size===0) return;
+    const group=[]; const queue=[start];
+    while(queue.length){
+      const cur=queue.shift();
+      if(visited.has(cur)) continue;
+      visited.add(cur); group.push(cur);
+      adj[cur].forEach(nb=>{if(!visited.has(nb))queue.push(nb);});
+    }
+    if(group.length>=3) groups.push(group);
+  });
+
+  // Stats grid
+  document.getElementById('stats-grid').innerHTML=`
+    <div class="stat-card"><div class="stat-val">${n}</div><div class="stat-lbl">תלמידים</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:#856404">${stars}</div><div class="stat-lbl">⭐ כוכבים</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:#8B1A1A">${rejected}</div><div class="stat-lbl">🚫 דחויים</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:#495057">${isolated}</div><div class="stat-lbl">👤 עזובים/בודדים</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:#862459">${controversial}</div><div class="stat-lbl">🔥 קונטרוברסיאליים</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:#3C3489">${mutualPairs.length}</div><div class="stat-lbl">💜 זוגות הדדיים</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:#0F6E56">${groups.length}</div><div class="stat-lbl">👥 קבוצות</div></div>
+  `;
+
+  // Student table — sort by friendVotes desc
+  const sorted=[...students].sort((a,b)=>b.friendVotes-a.friendVotes);
+  const tbody=document.getElementById('student-tbody');
+  tbody.innerHTML=sorted.map(s=>{
+    const st=getStatus(s);
+    const fvClass=s.friendVotes>0?'num-pos':'num-zero';
+    const rvClass=s.rejectVotes>0?'num-neg':'num-zero';
+    const gnd = genderMap[s.name]||'';
+    const gndLabel = gnd==='b'? '<span style="color:#4a90d9;font-weight:600">זכר</span>' : gnd==='g'? '<span style="color:#e06aa3;font-weight:600">נקבה</span>' : '<span style="color:#ccc">—</span>';
+    return `<tr>
+      <td><strong>${s.name}</strong></td>
+      <td>${gndLabel}</td>
+      <td class="${fvClass}">${s.friendVotes}</td>
+      <td class="${rvClass}">${s.rejectVotes}</td>
+      <td class="num-pos">${s.friendGiven}</td>
+      <td class="num-neg">${s.rejectGiven}</td>
+      <td><span class="badge ${st.cls}">${st.label}</span></td>
+    </tr>`;
+  }).join('');
+
+  // Mutual pairs chips
+  const pairsEl=document.getElementById('pairs-list');
+  if(mutualPairs.length){
+    pairsEl.innerHTML=mutualPairs.map(([a,b])=>`<span class="pair-chip">💜 ${a} ↔ ${b}</span>`).join('');
+  } else {
+    pairsEl.innerHTML='<span style="font-size:13px;color:#aaa">לא נמצאו זוגות הדדיים</span>';
+  }
+
+  // One-sided chips
+  const osEl=document.getElementById('onesided-list');
+  if(onesided.length){
+    osEl.innerHTML=onesided.map(([a,b])=>`<span class="onesided-chip">${a} → ${b}</span>`).join('');
+  } else {
+    osEl.innerHTML='<span style="font-size:13px;color:#aaa">לא נמצאו בחירות חד-צדדיות</span>';
+  }
+
+  // Groups chips
+  const groupsEl=document.getElementById('groups-list');
+  if(groups.length){
+    groupsEl.innerHTML=groups.map((g,i)=>`
+      <span class="group-chip"><span class="g-num">${g.length}</span>${g.join(' · ')}</span>
+    `).join('');
+  } else {
+    groupsEl.innerHTML='<span style="font-size:13px;color:#aaa">לא נמצאו קבוצות (3+ חברים עם בחירות הדדיות)</span>';
+  }
+}
+
+
+/* ─── Build recommendations ───────────────────────────────── */
+function buildRecommendations(students, allNames){
+  const n = students.length;
+  const avg = students.reduce((a,x)=>a+x.friendVotes,0)/n;
+  const starThreshold = Math.max(2, Math.round(avg*1.8));
+
+  const stars        = students.filter(s=>getStatus(s).cls==='badge-star');
+  const rejected     = students.filter(s=>getStatus(s).cls==='badge-rejected');
+  const isolated     = students.filter(s=>getStatus(s).cls==='badge-isolated');
+  const controversial= students.filter(s=>getStatus(s).cls==='badge-controversial');
+
+  // Mutual pairs for group detection
+  const mutualSet = new Set();
+  const seenP = new Set();
+  for(const e of edges.filter(e=>e.mutual)){
+    const key=[e.from,e.to].sort().join('|');
+    if(!seenP.has(key)){seenP.add(key);mutualSet.add(key);}
+  }
+
+  // One-sided: A chose B as friend, B did NOT choose A
+  const onesided = edges.filter(e=>e.type==='friend'&&!e.mutual);
+
+  // Students with NO outgoing friend choices at all
+  const noOutgoing = students.filter(s=>s.friendGiven===0);
+
+  // Students highly rejected (rejectVotes >= 3)
+  const highlyRejected = students.filter(s=>s.rejectVotes>=3);
+
+  // Students with only one-sided friendships (gave friend but never received back)
+  const onlySender = students.filter(s=>s.friendGiven>0 && s.friendVotes===0);
+
+  // ── Issues ────────────────────────────────────────────────
+  const issues = [];
+
+  if(rejected.length>0){
+    issues.push({
+      severity:'high',
+      icon:'🚨',
+      title:`דחייה חברתית — ${rejected.length} תלמיד${rejected.length>1?'ים':''}`,
+      body:`התלמידים הבאים לא קיבלו אף בחירה חיובית וזכו לדחיות. מצב זה מצביע על סיכון לבידוד חברתי ועלול להשפיע על תפקוד ורווחה נפשית.`,
+      names: rejected.map(s=>`<strong>${s.name}</strong> (${s.rejectVotes} דחיות)`).join('، ')
+    });
+  }
+
+  if(isolated.length>0){
+    issues.push({
+      severity:'high',
+      icon:'👤',
+      title:`בידוד חברתי — ${isolated.length} תלמיד${isolated.length>1?'ים':''}`,
+      body:`תלמידים אלו לא נבחרו ולא נדחו על ידי אף אחד — הם בלתי נראים מבחינה חברתית. ייתכן שהם מרגישים שאינם שייכים לכיתה.`,
+      names: isolated.map(s=>`<strong>${s.name}</strong>`).join('، ')
+    });
+  }
+
+  if(highlyRejected.length>0){
+    issues.push({
+      severity:'high',
+      icon:'⛔',
+      title:`דחייה עצימה — תלמידים עם 3+ דחיות`,
+      body:`תלמידים אלו קיבלו מספר גבוה במיוחד של דחיות. יש לטפל בכך בדחיפות ולבדוק האם קיימת תופעת שתיקה, בריונות או קיטוב בכיתה.`,
+      names: highlyRejected.map(s=>`<strong>${s.name}</strong> (${s.rejectVotes} דחיות)`).join('، ')
+    });
+  }
+
+  if(controversial.length>0){
+    issues.push({
+      severity:'medium',
+      icon:'🔥',
+      title:`תלמידים קונטרוברסיאליים — ${controversial.length}`,
+      body:`תלמידים אלו מעוררים תגובות קיצוניות בקרב חבריהם — חלק אוהבים אותם וחלק דוחים אותם. הם עשויים להיות מנהיגים עם השפעה שלילית, או ילדים בעלי אישיות חזקה שגורמת לחיכוכים.`,
+      names: controversial.map(s=>`<strong>${s.name}</strong> (${s.friendVotes} בחירות, ${s.rejectVotes} דחיות)`).join('، ')
+    });
+  }
+
+  const oneSidedCount = onesided.length;
+  const mutualCount = mutualSet.size;
+  const ratio = mutualCount/(oneSidedCount||1);
+  if(ratio < 0.4 && oneSidedCount>3){
+    issues.push({
+      severity:'medium',
+      icon:'↔️',
+      title:`חוסר הדדיות גבוה — ${oneSidedCount} בחירות חד-צדדיות`,
+      body:`רוב הבחירות בכיתה אינן הדדיות. ייתכן שקיים פער בין תפיסת הילדים את קשריהם לבין המציאות, מה שעלול לגרום לאכזבות ולתחושת דחייה.`,
+      names: ''
+    });
+  }
+
+  if(noOutgoing.length>0){
+    issues.push({
+      severity:'medium',
+      icon:'😶',
+      title:`תלמידים שלא בחרו אף חבר — ${noOutgoing.length}`,
+      body:`תלמידים אלו לא ציינו אף ילד כחבר. ייתכן שהם מסוגרים, לא מרגישים שייכות, או שלא הבינו את המשימה.`,
+      names: noOutgoing.map(s=>`<strong>${s.name}</strong>`).join('، ')
+    });
+  }
+
+  const clique = (n-stars.length-rejected.length-isolated.length);
+  if(stars.length<=2 && n>10){
+    issues.push({
+      severity:'low',
+      icon:'⭐',
+      title:`ריכוז יתר סביב מספר קטן של כוכבים`,
+      body:`מרבית הבחירות בכיתה מרוכזות אצל ${stars.length||'מעט'} תלמידים. מצב זה יכול לגרום לתחרותיות, לתלות יתר, ולהשפעה לא פרופורציונלית של אותם ילדים על דינמיקת הכיתה.`,
+      names: stars.map(s=>`<strong>${s.name}</strong> (${s.friendVotes} בחירות)`).join('، ')
+    });
+  }
+
+  // ── Recommendations ─────────────────────────────────────
+  const recs = [];
+
+  if(rejected.length>0 || isolated.length>0){
+    const names=[...rejected,...isolated].map(s=>s.name);
+    recs.push({
+      icon:'🤝',
+      title:'שיבוץ מכוון בקבוצות עבודה',
+      body:`שבצי את ${names.map(s=>`<strong>${s}</strong>`).join(', ')} בקבוצות עבודה קטנות עם תלמידים שיש להם מיומנויות חברתיות טובות. הגדירי תפקידים ברורים כדי לאפשר להם לתרום ולהיות מוכרים על ידי הקבוצה.`,
+      target:`מתאים ל: ${names.join(', ')}`
+    });
+  }
+
+  if(rejected.length>0){
+    recs.push({
+      icon:'💬',
+      title:'שיחות אישיות ובניית יחסים',
+      body:`ערכי שיחות אישיות עם התלמידים הדחויים כדי להבין את חוויתם. במקביל, שוחח/י בנפרד עם הילדים שדחו אותם כדי להבין את הסיבות ולעצור תהליכי בריונות בשלב מוקדם.`,
+      target:``
+    });
+  }
+
+  if(controversial.length>0){
+    recs.push({
+      icon:'🎯',
+      title:'הפניית השפעה של תלמידים קונטרוברסיאליים',
+      body:`תלמידים קונטרוברסיאליים הם לרוב בעלי כריזמה וכוח השפעה. נסי לשתף אותם בתפקידי אחריות — תורן, מנהיג פרויקט, עוזר מורה — כדי לכוון את השפעתם לחיובי.`,
+      target:`מתאים ל: ${controversial.map(s=>s.name).join(', ')}`
+    });
+  }
+
+  if(oneSidedCount > mutualCount){
+    recs.push({
+      icon:'🪞',
+      title:'פעילות "מראה חברתית" — מודעות לקשרים',
+      body:`ערכי פעילות כיתתית אנונימית שבה ילדים כותבים מה הם מעריכים בחברים שלהם. ילדים רבים אינם מודעים לכך שמישהו בחר בהם כחבר — חשיפה עדינה של הדדיות יכולה לחזק קשרים קיימים.`,
+      target:``
+    });
+  }
+
+  if(stars.length > 0 && stars.length <= 2){
+    recs.push({
+      icon:'🌟',
+      title:'פיזור ריכוז השפעה — "כוכבים מגשרים"',
+      body:`שבצי את ${stars.map(s=>`<strong>${s.name}</strong>`).join(' ו-')} בקבוצות שונות כדי לפזר את ההשפעה החיובית שלהם ולעודד קשרים בין קבוצות שונות בכיתה. כוכב שיושב ליד ילד בודד יכול לשנות את מעמדו תוך שבועות.`,
+      target:``
+    });
+  }
+
+  recs.push({
+    icon:'🎲',
+    title:'פעילויות שיתופיות מבוססות תפקידים',
+    body:`תכנני פעילויות שבהן לכל ילד יש תפקיד ייחודי שתלוי בתפקידי האחרים (פאזל, משחק תפקידים, בניית פרויקט). מבנה כזה מכריח שיתוף פעולה ומפחית תחרותיות על מעמד חברתי.`,
+    target:``
+  });
+
+  if(isolated.length>0 || rejected.length>0){
+    recs.push({
+      icon:'📅',
+      title:'מדידה חוזרת בעוד 6–8 שבועות',
+      body:`לאחר יישום ההמלצות, ערכי סוציומטרי נוסף כדי לבדוק האם חל שיפור במעמדם של הילדים הדחויים והבודדים. שינוי חברתי ניכר לוקח בדרך כלל 4–8 שבועות של עבודה מכוונת.`,
+      target:``
+    });
+  }
+
+  // ── Attention list ────────────────────────────────────────
+  const attentionStudents = [];
+  students.forEach(s=>{
+    const reasons=[];
+    if(getStatus(s).cls==='badge-rejected')  reasons.push('דחוי — ללא חברים, עם דחיות');
+    if(getStatus(s).cls==='badge-isolated')  reasons.push('בודד — בלתי נראה חברתית');
+    if(s.rejectVotes>=3)                     reasons.push(`${s.rejectVotes} דחיות — עצימות גבוהה`);
+    if(s.friendGiven>0 && s.friendVotes===0) reasons.push('נותן קשרים אך לא מקבל בחזרה');
+    if(getStatus(s).cls==='badge-controversial') reasons.push('קונטרוברסיאלי — דורש הכוונה');
+    if(reasons.length) attentionStudents.push({name:s.name, reasons});
+  });
+
+  // ── Render ────────────────────────────────────────────────
+  const issuesEl = document.getElementById('issues-list');
+  if(issues.length){
+    issuesEl.innerHTML = issues.map(issue=>`
+      <div class="issue-card severity-${issue.severity}">
+        <div class="issue-title">${issue.icon} ${issue.title}</div>
+        <div class="issue-body">${issue.body}</div>
+        ${issue.names ? `<div class="issue-names">תלמידים: ${issue.names}</div>` : ''}
+      </div>`).join('');
+  } else {
+    issuesEl.innerHTML = '<div class="no-issues">✅ לא זוהו בעיות חברתיות מיוחדות בכיתה זו. הדינמיקה נראית תקינה.</div>';
+  }
+
+  const recsEl = document.getElementById('recs-list');
+  recsEl.innerHTML = recs.map(rec=>`
+    <div class="rec-card">
+      <div class="rec-title">${rec.icon} ${rec.title}</div>
+      <div class="rec-body">${rec.body}</div>
+      ${rec.target ? `<div class="rec-target">${rec.target}</div>` : ''}
+    </div>`).join('');
+
+  const attEl = document.getElementById('attention-list');
+  if(attentionStudents.length){
+    attEl.innerHTML = attentionStudents.map(s=>`
+      <div class="issue-card severity-${s.reasons.some(r=>r.includes('דחוי')||r.includes('עצימות'))?'high':'medium'}">
+        <div class="issue-title">📌 ${s.name}</div>
+        <div class="issue-body">${s.reasons.map(r=>`• ${r}`).join('<br>')}</div>
+      </div>`).join('');
+  } else {
+    attEl.innerHTML = '<div class="no-issues">✅ אין תלמידים הדורשים תשומת לב דחופה.</div>';
+  }
+}
+
+/* ─── Draw map ────────────────────────────────────────────── */
+function reshuffle(){
+  const wrap=document.getElementById('canvas-wrap');
+  W=wrap.clientWidth||680;
+  const cx=W/2,cy=H/2;
+  const boys=nodes.filter(n=>genderMap[n.id]==='b');
+  const girls=nodes.filter(n=>genderMap[n.id]==='g');
+  const noG=nodes.filter(n=>!genderMap[n.id]);
+  const hasGender=(boys.length>0||girls.length>0)&&noG.length===0;
+
+  function reshuffleGroup(group,startAngle,sweepAngle){
+    for(let i=group.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[group[i],group[j]]=[group[j],group[i]];}
+    group.forEach((n,i)=>{
+      const spread=group.length===1?0:(Math.random()*0.4-0.2);
+      const angle=group.length===1?startAngle+sweepAngle/2:startAngle+(sweepAngle*i/(group.length-1))+spread;
+      n.x=cx+n.baseR*Math.cos(angle); n.y=cy+n.baseR*Math.sin(angle);
+    });
+  }
+  if(hasGender){
+    reshuffleGroup(boys, Math.PI*0.1, Math.PI*0.8);
+    reshuffleGroup(girls, -Math.PI*0.9, Math.PI*0.8);
+  } else {
+    for(let i=nodes.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[nodes[i],nodes[j]]=[nodes[j],nodes[i]];}
+    nodes.forEach((n,i)=>{
+      const angle=(2*Math.PI*i/nodes.length)-Math.PI/2+(Math.random()*0.3-0.15);
+      n.x=cx+n.baseR*Math.cos(angle); n.y=cy+n.baseR*Math.sin(angle);
+    });
+  }
+  draw();
+}
+function getNode(id){return nodes.find(n=>n.id===id);}
+
+function draw(){
+  const wrap=document.getElementById('canvas-wrap');
+  const canvas=document.getElementById('canvas');
+  W=wrap.clientWidth||680; canvas.width=W; canvas.height=H;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+  const cx=W/2,cy=H/2,maxR=Math.min(W,H)*0.40;
+  for(let r=1;r<=3;r++){
+    ctx.beginPath();ctx.arc(cx,cy,28+(maxR-28)*(r/3),0,2*Math.PI);
+    ctx.strokeStyle='rgba(0,0,0,0.05)';ctx.lineWidth=1;ctx.setLineDash([4,6]);ctx.stroke();ctx.setLineDash([]);
+  }
+  ctx.beginPath();ctx.arc(cx,cy,4,0,2*Math.PI);ctx.fillStyle='rgba(0,0,0,0.07)';ctx.fill();
+  ctx.font='11px Segoe UI,Arial,sans-serif';ctx.fillStyle='rgba(0,0,0,0.15)';ctx.textAlign='center';
+  ctx.fillText('פופולרי',cx,cy-10);
+  ctx.fillText('פחות פופולרי',cx,cy-maxR+14);
+  const maxVotes=Math.max(...nodes.map(n=>n.votes),1);
+  for(const e of edges){
+    const a=getNode(e.from),b=getNode(e.to); if(!a||!b) continue;
+    const highlight=selectedNode&&(e.from===selectedNode||e.to===selectedNode);
+    if(selectedNode&&!highlight) continue;
+    ctx.beginPath();
+    const mx=(a.x+b.x)/2+(b.y-a.y)*0.1,my=(a.y+b.y)/2-(b.x-a.x)*0.1;
+    ctx.moveTo(a.x,a.y);ctx.quadraticCurveTo(mx,my,b.x,b.y);
+    if(e.mutual){ctx.strokeStyle=MUTUAL_COLOR;ctx.lineWidth=2.5;ctx.setLineDash([]);}
+    else if(e.type==='friend'){ctx.strokeStyle=FRIEND_COLOR;ctx.lineWidth=1.5;ctx.setLineDash([]);}
+    else{ctx.strokeStyle=NONFRIEND_COLOR;ctx.lineWidth=1;ctx.setLineDash([5,4]);}
+    ctx.globalAlpha=highlight?1:0.4;ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;
+    const t=0.72;
+    const qx=(1-t)*(1-t)*a.x+2*(1-t)*t*mx+t*t*b.x,qy=(1-t)*(1-t)*a.y+2*(1-t)*t*my+t*t*b.y;
+    const dxt=2*(1-t)*(mx-a.x)+2*t*(b.x-mx),dyt=2*(1-t)*(my-a.y)+2*t*(b.y-my);
+    const ang=Math.atan2(dyt,dxt),as=7;
+    ctx.beginPath();
+    ctx.moveTo(qx-as*Math.cos(ang-0.4),qy-as*Math.sin(ang-0.4));
+    ctx.lineTo(qx,qy);ctx.lineTo(qx-as*Math.cos(ang+0.4),qy-as*Math.sin(ang+0.4));
+    ctx.strokeStyle=e.mutual?MUTUAL_COLOR:e.type==='friend'?FRIEND_COLOR:NONFRIEND_COLOR;
+    ctx.lineWidth=1.1;ctx.globalAlpha=highlight?1:0.4;ctx.stroke();ctx.globalAlpha=1;
+  }
+  // Anti-overlap: gently push overlapping nodes apart
+  const iters=18;
+  for(let iter=0;iter<iters;iter++){
+    for(let i=0;i<nodes.length;i++){
+      for(let j=i+1;j<nodes.length;j++){
+        const ni=nodes[i],nj=nodes[j];
+        const Ri=18+(ni.votes/maxVotes)*10, Rj=18+(nj.votes/maxVotes)*10;
+        const minDist=Ri+Rj+28; // node radii + label space
+        const dx=nj.x-ni.x, dy=nj.y-ni.y;
+        const dist=Math.sqrt(dx*dx+dy*dy)||0.01;
+        if(dist<minDist){
+          const push=(minDist-dist)/2*0.5;
+          const nx=dx/dist*push, ny=dy/dist*push;
+          nodes[i].x-=nx; nodes[i].y-=ny;
+          nodes[j].x+=nx; nodes[j].y+=ny;
+        }
+      }
+    }
+  }
+
+  // Gender zone labels
+  const hasG = Object.values(genderMap).some(v=>v==='b'||v==='g');
+  if(hasG){
+    ctx.font='12px Segoe UI,Arial,sans-serif';
+    ctx.fillStyle='rgba(74,144,217,0.35)';
+    ctx.textAlign='center';
+    ctx.fillText('בנים',cx-maxR*0.7,cy+maxR+18);
+    ctx.fillStyle='rgba(224,106,163,0.35)';
+    ctx.fillText('בנות',cx+maxR*0.7,cy+maxR+18);
+  }
+
+  for(const n of nodes){
+    const sel=selectedNode===n.id;
+    const vr=n.votes/maxVotes; const R=18+vr*10;
+    const gnd=genderMap[n.id]||'';
+    const baseColor = gnd==='b'?BOY_COLOR : gnd==='g'?GIRL_COLOR : '#1D9E75';
+    const lightFill  = gnd==='b'?'#EBF4FF' : gnd==='g'?'#FEF0F7' : '#E1F5EE';
+    const lightFill1 = gnd==='b'?'#F4F9FF' : gnd==='g'?'#FFF5FB' : '#F1EFE8';
+
+    if(vr>0.4){
+      ctx.beginPath();ctx.arc(n.x,n.y,R+7,0,2*Math.PI);
+      const rgb=gnd==='b'?'74,144,217':gnd==='g'?'224,106,163':'29,158,117';
+      ctx.fillStyle=`rgba(${rgb},${vr*0.15})`;ctx.fill();
+    }
+    ctx.beginPath();ctx.arc(n.x,n.y,R,0,2*Math.PI);
+    if(sel){
+      ctx.fillStyle='#EEEDFE';ctx.strokeStyle='#7F77DD';ctx.lineWidth=1.5;
+    } else if(n.votes>=2){
+      ctx.fillStyle=lightFill;ctx.strokeStyle=baseColor;ctx.lineWidth=0.8;
+    } else if(n.votes===1){
+      ctx.fillStyle=lightFill1;ctx.strokeStyle=baseColor;ctx.lineWidth=0.5;
+    } else {
+      ctx.fillStyle='#f5f4f0';ctx.strokeStyle=baseColor==='#1D9E75'?'#ccc':baseColor;ctx.lineWidth=0.5;
+    }
+    ctx.fill();ctx.stroke();
+
+    // Vote badge
+    if(n.votes>0){
+      const bx=n.x+R*0.65,by=n.y-R*0.65;
+      ctx.beginPath();ctx.arc(bx,by,9,0,2*Math.PI);
+      ctx.fillStyle=baseColor;ctx.fill();
+      ctx.font='bold 10px Segoe UI,Arial,sans-serif';ctx.fillStyle='#fff';
+      ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(n.votes,bx,by);
+    }
+
+    // Label OUTSIDE circle to avoid overlap
+    const label=displayLabel(n.id, nodes.map(nd=>nd.id));
+    const fontSize=11;
+    ctx.font=`${sel?'600 ':''}${fontSize}px Segoe UI,Arial,sans-serif`;
+    const textColor=sel?'#3C3489':gnd==='b'?'#1a5fa8':gnd==='g'?'#9c2a6b':'#333';
+
+    // Place label below node, push outward from center
+    const angle=Math.atan2(n.y-cy, n.x-cx);
+    const labelDist=R+13;
+    const lx=n.x+Math.cos(angle)*labelDist;
+    const ly=n.y+Math.sin(angle)*labelDist;
+
+    // White halo for readability
+    ctx.strokeStyle='rgba(255,255,255,0.85)';ctx.lineWidth=3;
+    ctx.lineJoin='round';
+    ctx.strokeText(label,lx,ly);
+    ctx.fillStyle=textColor;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(label,lx,ly);
+  }
+}
+
+function exportPNG(){
+  const canvas=document.getElementById('canvas');
+  const link=document.createElement('a');
+  link.download='sociometric-map.png'; link.href=canvas.toDataURL('image/png'); link.click();
+}
+
+function exportSummary(){
+  const rows=[['שם','מגדר','נבחר כחבר','נבחר כלא-חבר','בחר חברים','בחר לא-חברים','מעמד']];
+  [...allStudents].sort((a,b)=>b.friendVotes-a.friendVotes).forEach(s=>{
+    const st=getStatus(s);
+    const g=genderMap[s.name]||''; rows.push([s.name, g==='b'?'זכר':g==='g'?'נקבה':'', s.friendVotes,s.rejectVotes,s.friendGiven,s.rejectGiven,st.label.replace(/[⭐🚫👤🔥😊]/g,'').trim()]);
+  });
+  const csv='\uFEFF'+rows.map(r=>r.join(',')).join('\n');
+  const link=document.createElement('a');
+  link.download='sociometric-summary.csv';
+  link.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  link.click();
+}
+
+/* ─── Interaction ─────────────────────────────────────────── */
+function getCanvas(){return document.getElementById('canvas');}
+function canvasPos(e){
+  const r=getCanvas().getBoundingClientRect(),sc=getCanvas().width/r.width;
+  return{x:((e.clientX||e.touches[0].clientX)-r.left)*sc,y:((e.clientY||e.touches[0].clientY)-r.top)*sc};
+}
+function hitNode(px,py){
+  const maxV=Math.max(...nodes.map(n=>n.votes),1);
+  return nodes.slice().reverse().find(n=>Math.hypot(n.x-px,n.y-py)<18+(n.votes/maxV)*10+5)||null;
+}
+getCanvas().addEventListener('mousedown',e=>{
+  const p=canvasPos(e),n=hitNode(p.x,p.y);
+  if(n){dragging=n;dragOffX=n.x-p.x;dragOffY=n.y-p.y;moved=false;getCanvas().style.cursor='grabbing';}
+});
+getCanvas().addEventListener('mousemove',e=>{
+  if(!dragging){getCanvas().style.cursor=hitNode(canvasPos(e).x,canvasPos(e).y)?'grab':'default';return;}
+  moved=true;const p=canvasPos(e);dragging.x=p.x+dragOffX;dragging.y=p.y+dragOffY;draw();
+});
+getCanvas().addEventListener('mouseup',e=>{
+  getCanvas().style.cursor='default';
+  if(dragging&&!moved){
+    const n=dragging; selectedNode=selectedNode===n.id?null:n.id;
+    if(selectedNode){
+      const mf=edges.filter(e=>e.from===selectedNode&&e.type==='friend').map(e=>e.to);
+      const mn=edges.filter(e=>e.from===selectedNode&&e.type==='nonfriend').map(e=>e.to);
+      const cm=edges.filter(e=>e.to===selectedNode&&e.type==='friend').map(e=>e.from);
+      document.getElementById('node-info').innerHTML=
+        `<strong>${selectedNode}</strong> — נבחר ${n.votes}× כחבר &nbsp;|&nbsp; בחר: ${mf.join(', ')||'—'} &nbsp;|&nbsp; לא-חברים: ${mn.join(', ')||'—'} &nbsp;|&nbsp; בחרו אותו: ${cm.join(', ')||'—'}`;
+    }else{document.getElementById('node-info').textContent='לחץ על שם ילד לפרטים';}
+    draw();
+  }
+  dragging=null;moved=false;
+});
+getCanvas().addEventListener('touchstart',e=>{e.preventDefault();const p=canvasPos(e),n=hitNode(p.x,p.y);if(n){dragging=n;dragOffX=n.x-p.x;dragOffY=n.y-p.y;moved=false;}},{passive:false});
+getCanvas().addEventListener('touchmove',e=>{e.preventDefault();if(!dragging)return;moved=true;const p=canvasPos(e);dragging.x=p.x+dragOffX;dragging.y=p.y+dragOffY;draw();},{passive:false});
+getCanvas().addEventListener('touchend',()=>{dragging=null;moved=false;});
+window.addEventListener('resize',()=>{if(nodes.length)draw();});
+</script>
+</body>
+</html>
